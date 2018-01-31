@@ -1,81 +1,88 @@
 package com.malex.util;
 
-import com.malex.exception.AppExceprion;
+import com.malex.entity.Table;
+import com.malex.exception.AppException;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author malex
  */
-public class DataBaseUtils {
+public class DataBaseUtils extends AbstractBase {
 
     /**
-     * JDBC driver name and database URL
-     */
-    private static final String JDBC_DRIVER = "org.h2.Driver";
-    private static final String DB_URL = "jdbc:h2:./db/";
-
-    /**
-     * Database credentials
-     */
-    private static final String USER = "sa";
-    private static final String PASS = "";
-
-    /**
-     * @param schema   the name of schema
      * @param dataBase builder object
      */
-    public static void createDataBase(String schema, DataBase.DataBaseBuilder dataBase) {
-        getDriver();
-        try (Connection conn = DriverManager.getConnection(DB_URL + schema, USER, PASS);
-             Statement stmt = conn.createStatement()) {
+    public static void createDataBase(DataBase.DataBaseBuilder dataBase) {
+        try (Statement stmt = getConnection().createStatement()) {
             stmt.executeUpdate(dataBase.getQuery());
         } catch (SQLException ex) {
             String errorMessage = "Error connection to DB | message: " + ex.getMessage();
-            throw new AppExceprion(errorMessage);
+            throw new AppException(errorMessage);
         }
     }
 
     /**
-     * @param schema the name of schema
-     * @param table  the name of the table
+     * @param table the name of the table
      */
-    public static void dropTable(String schema, String table) {
-        getDriver();
-        try (Connection conn = DriverManager.getConnection(DB_URL + schema, USER, PASS);
-             Statement stmt = conn.createStatement()) {
+    public static void dropTable(String table) {
+        try (Statement stmt = getConnection().createStatement()) {
             stmt.executeUpdate(String.format("DROP TABLE IF EXISTS %s;", table));
         } catch (SQLException ex) {
             String errorMessage = "Error drop the DB | message: " + ex.getMessage();
-            throw new AppExceprion(errorMessage);
+            throw new AppException(errorMessage);
         }
     }
 
     /**
-     * @param schema the name of schema
-     * @param query  SQL query
+     * @param query SQL query
      */
-    public static void insert(String schema, String query) {
-        getDriver();
-        try (Connection conn = DriverManager.getConnection(DB_URL + schema, USER, PASS);
-             Statement stmt = conn.createStatement()) {
+    public static void insert(String query) {
+        try (Statement stmt = getConnection().createStatement()) {
             stmt.executeUpdate(query);
         } catch (SQLException ex) {
             String errorMessage = "Error insert to DB | message: " + ex.getMessage();
-
-            throw new AppExceprion(errorMessage);
+            throw new AppException(errorMessage);
         }
     }
 
-    private static void getDriver() {
-        try {
-            Class.forName(JDBC_DRIVER);
-        } catch (ClassNotFoundException ex) {
-            String errorMessage = "Error registration driver | message: " + ex.getMessage();
-            throw new AppExceprion(errorMessage);
+    /**
+     * @param table
+     * @return
+     */
+    public static List<Table> select(String table) {
+        try (Statement stmt = getConnection().createStatement()) {
+            List<Table> result = new ArrayList<>();
+            ResultSet rs = stmt.executeQuery(String.format("SELECT * FROM %s;", table));
+            while (rs.next()) {
+                result.add(new Table(rs.getInt("id"), rs.getString("name"), rs.getString("description")));
+            }
+            return result;
+        } catch (SQLException ex) {
+            String errorMessage = "Error drop the DB | message: " + ex.getMessage();
+            throw new AppException(errorMessage);
+        }
+    }
+
+    public static ResultSet selectQuery(String query) {
+        try (Statement stmt = getConnection().createStatement()) {
+            return stmt.executeQuery(query);
+        } catch (SQLException ex) {
+            String errorMessage = "Error selectQuery(String query) | message: " + ex.getMessage();
+            throw new AppException(errorMessage);
+        }
+    }
+
+    public static int insertOrUpdate(String query){
+        try (Statement stmt = getConnection().createStatement()) {
+            return stmt.executeUpdate(query);
+        } catch (SQLException ex) {
+            String errorMessage = "Error insertOrUpdate(String query) | message: " + ex.getMessage();
+            throw new AppException(errorMessage);
         }
     }
 }
